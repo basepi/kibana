@@ -81,6 +81,9 @@ export class TelemetryDiagTask {
       return;
     }
 
-    this.logger.debug(`Task for Telemetry Diagnostics is running`);
+    this.logger.debug('TODO: Query the hidden index - limit 100 results');
+    this.logger.debug('TODO: Sort results by `event.ingested` field');
+    this.logger.debug('TODO: Queue telemetry events for sending');
+    this.logger.debug('TODO: Record the last execution time');
   };
 }
