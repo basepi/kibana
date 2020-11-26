@@ -82,6 +82,8 @@ export class TelemetryDiagTask {
     }
 
     this.logger.debug('TODO: Query the hidden index - limit 100 results');
+    const result = await this.sender.queryDiagnosticAlertIndex();
+    this.logger.debug(`${JSON.stringify(result)}`);
     this.logger.debug('TODO: Sort results by `event.ingested` field');
     this.logger.debug('TODO: Queue telemetry events for sending');
     this.logger.debug('TODO: Record the last execution time');

@@ -8,7 +8,7 @@ import { cloneDeep } from 'lodash';
 import axios from 'axios';
 import { LegacyAPICaller } from 'kibana/server';
 import { URL } from 'url';
-import { Logger, CoreStart } from '../../../../../../src/core/server';
+import { Logger, CoreStart, ICustomClusterClient } from '../../../../../../src/core/server';
 import { transformDataToNdjson } from '../../utils/read_stream/create_stream_from_ndjson';
 import {
   TelemetryPluginStart,
@@ -62,6 +62,7 @@ export class TelemetryEventsSender {
   private queue: TelemetryEvent[] = [];
   private isOptedIn?: boolean = true; // Assume true until the first check
   private diagTask?: TelemetryDiagTask;
+  private esClient?: ICustomClusterClient;
 
   constructor(logger: Logger) {
     this.logger = logger.get('telemetry_events');
@@ -82,6 +83,7 @@ export class TelemetryEventsSender {
   ) {
     this.telemetryStart = telemetryStart;
     this.core = core;
+    this.esClient = core?.elasticsearch.createClient('security-diagnostic-client');
 
     this.logger.debug(`Starting local task`);
     setTimeout(() => {
@@ -99,6 +101,10 @@ export class TelemetryEventsSender {
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }
+  }
+
+  public queryDiagnosticAlertIndex() {
+    return this.esClient?.asInternalUser.ping();
   }
 
   public queueTelemetryEvents(events: TelemetryEvent[]) {
@@ -154,7 +160,6 @@ export class TelemetryEventsSender {
       // Checking opt-in status is relatively expensive (calls a saved-object), so
       // we only check it when we have things to send.
       this.isOptedIn = await this.telemetryStart?.getIsOptedIn();
-      this.logger.debug(`>>> ${this.isOptedIn}`);
       if (!this.isOptedIn) {
         this.logger.debug(`Telemetry is not opted-in.`);
         this.queue = [];
