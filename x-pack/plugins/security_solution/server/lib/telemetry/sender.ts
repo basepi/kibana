@@ -104,7 +104,25 @@ export class TelemetryEventsSender {
   }
 
   public queryDiagnosticAlertIndex() {
-    return this.esClient?.asInternalUser.ping();
+    // return this.esClient?.asInternalUser.ping();
+
+    const query = {
+      index: '.pete-hampton-test-index*',
+      ignore_unavailable: true,
+      size: 100,
+      body: {
+        query: {
+          range: {
+            '@timestamp': {
+              gte: 'now-5m',
+              lt: 'now',
+            },
+          },
+        },
+      },
+    };
+
+    return this.esClient?.asInternalUser.search(query);
   }
 
   public queueTelemetryEvents(events: TelemetryEvent[]) {
