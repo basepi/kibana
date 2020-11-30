@@ -62,7 +62,6 @@ export class TelemetryEventsSender {
   private queue: TelemetryEvent[] = [];
   private isOptedIn?: boolean = true; // Assume true until the first check
   private diagTask?: TelemetryDiagTask;
-  private esClient?: ICustomClusterClient;
 
   constructor(logger: Logger) {
     this.logger = logger.get('telemetry_events');
@@ -83,7 +82,6 @@ export class TelemetryEventsSender {
   ) {
     this.telemetryStart = telemetryStart;
     this.core = core;
-    this.esClient = core?.elasticsearch.createClient('security-diagnostic-client');
 
     this.logger.debug(`Starting local task`);
     setTimeout(() => {
@@ -103,26 +101,28 @@ export class TelemetryEventsSender {
     }
   }
 
-  public queryDiagnosticAlertIndex() {
-    // return this.esClient?.asInternalUser.ping();
-
+  // TODO:@pjhampton this should be abstracted away from the sender
+  public async fetchDiagnosticAlerts() {
     const query = {
-      index: '.pete-hampton-test-index*',
+      index: 'pete-hampton-test-index*',
       ignore_unavailable: true,
       size: 100,
       body: {
         query: {
           range: {
             '@timestamp': {
-              gte: 'now-5m',
-              lt: 'now',
+              gte: 'now-1d/d', // TODO: make 5m
             },
           },
         },
       },
     };
 
-    return this.esClient?.asInternalUser.search(query);
+    if (!this.core) {
+      throw Error('could not fetch diagnostic alerts because core is not available');
+    }
+    const callCluster = this.core.elasticsearch.legacy.client.callAsInternalUser;
+    return callCluster('search', query);
   }
 
   public queueTelemetryEvents(events: TelemetryEvent[]) {

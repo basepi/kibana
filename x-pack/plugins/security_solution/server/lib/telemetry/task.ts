@@ -81,11 +81,18 @@ export class TelemetryDiagTask {
       return;
     }
 
-    this.logger.debug('TODO: Query the hidden index - limit 100 results');
-    const result = await this.sender.queryDiagnosticAlertIndex();
-    this.logger.debug(`${JSON.stringify(result)}`);
-    this.logger.debug('TODO: Sort results by `event.ingested` field');
+    const response = await this.sender.fetchDiagnosticAlerts();
+    const hits = response.hits?.hits || [];
+    this.logger.debug(hits);
+
+    if (!Array.isArray(hits) || !hits.length) {
+      this.logger.debug('no diagnostic alerts to send');
+      return; // No results
+    }
+
     this.logger.debug('TODO: Queue telemetry events for sending');
+    this.sender.queueTelemetryEvents(hits);
+
     this.logger.debug('TODO: Record the last execution time');
   };
 }
