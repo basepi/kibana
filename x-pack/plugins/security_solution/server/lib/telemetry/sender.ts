@@ -101,8 +101,7 @@ export class TelemetryEventsSender {
     }
   }
 
-  // TODO:@pjhampton this should be abstracted away from the sender
-  public async fetchDiagnosticAlerts() {
+  public async fetchDiagnosticAlerts(fromTimestamp: string, toTimestamp: string) {
     const query = {
       index: 'pete-hampton-test-index*',
       ignore_unavailable: true,
@@ -111,7 +110,8 @@ export class TelemetryEventsSender {
         query: {
           range: {
             '@timestamp': {
-              gte: 'now-1d/d', // TODO: make 5m
+              gt: fromTimestamp,
+              lte: toTimestamp,
             },
           },
         },

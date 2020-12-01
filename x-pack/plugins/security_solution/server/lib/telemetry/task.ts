@@ -3,13 +3,14 @@
  * or more contributor license agreements. Licensed under the Elastic License;
  * you may not use this file except in compliance with the Elastic License.
  */
+import moment from 'moment';
 import { Logger } from 'src/core/server';
 import {
   ConcreteTaskInstance,
   TaskManagerSetupContract,
   TaskManagerStartContract,
 } from '../../../../task_manager/server';
-import { TelemetryEventsSender } from './sender';
+import { TelemetryEventsSender, TelemetryEvent } from './sender';
 
 export const TelemetryDiagTaskConstants = {
   TIMEOUT: '1m',
@@ -21,6 +22,7 @@ export const TelemetryDiagTaskConstants = {
 export class TelemetryDiagTask {
   private readonly logger: Logger;
   private readonly sender: TelemetryEventsSender;
+  private lastQueryTimestamp?: string;
 
   constructor(
     logger: Logger,
@@ -81,15 +83,19 @@ export class TelemetryDiagTask {
       return;
     }
 
-    const response = await this.sender.fetchDiagnosticAlerts();
-    const hits = response.hits?.hits || [];
+    const fetchFromTimestamp =
+      this.lastQueryTimestamp || moment.utc().subtract(5, 'm').toISOString();
+    const fetchToTimestamp = moment.utc().toISOString();
+    const response = await this.sender.fetchDiagnosticAlerts(fetchFromTimestamp, fetchToTimestamp);
+    this.lastQueryTimestamp = fetchToTimestamp;
 
+    const hits = response.hits?.hits || [];
     if (!Array.isArray(hits) || !hits.length) {
       this.logger.debug('no diagnostic alerts retrieved');
-      return; // No results
+      return;
     }
 
-    const documents = hits.map((h) => h._source);
-    this.sender.queueTelemetryEvents(documents);
+    const alerts: TelemetryEvent[] = hits.map((h) => h._source);
+    this.sender.queueTelemetryEvents(alerts);
   };
 }
