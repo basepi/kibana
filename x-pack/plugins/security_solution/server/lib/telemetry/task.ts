@@ -83,16 +83,13 @@ export class TelemetryDiagTask {
 
     const response = await this.sender.fetchDiagnosticAlerts();
     const hits = response.hits?.hits || [];
-    this.logger.debug(hits);
 
     if (!Array.isArray(hits) || !hits.length) {
-      this.logger.debug('no diagnostic alerts to send');
+      this.logger.debug('no diagnostic alerts retrieved');
       return; // No results
     }
 
-    this.logger.debug('TODO: Queue telemetry events for sending');
-    this.sender.queueTelemetryEvents(hits);
-
-    this.logger.debug('TODO: Record the last execution time');
+    const documents = hits.map((h) => h._source);
+    this.sender.queueTelemetryEvents(documents);
   };
 }
